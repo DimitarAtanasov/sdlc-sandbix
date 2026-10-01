@@ -1,0 +1,49 @@
+{
+  "name": "orchestration-engine",
+  "displayName": "AI SDLC Orchestration Engine",
+  "version": "0.1.0",
+  "description": "Computes the Complexity Vector (S, D, H) from local repo/git state and decides pipeline strategy, model tier, token cap, and the 3-way decision (draft / ask-clarification / decline) for every task entering the AI SDLC framework.",
+  "author": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "keywords": ["sdlc", "orchestration", "complexity", "routing", "agents"],
+  "userConfig": {
+    "tier1Model": {
+      "type": "string",
+      "title": "Level 3 (Macro Arch) model",
+      "description": "Claude model used for Tier 1 / deep-reasoning tasks (M > 70).",
+      "default": "opus"
+    },
+    "tier2Model": {
+      "type": "string",
+      "title": "Level 2 (Standard) model",
+      "description": "Claude model used for Tier 2 / balanced tasks (15 <= M <= 70).",
+      "default": "sonnet"
+    },
+    "tier3Model": {
+      "type": "string",
+      "title": "Level 1 (Micro-Task) model",
+      "description": "Claude model used for Tier 3 / fast-cheap tasks (M < 15).",
+      "default": "haiku"
+    },
+    "declineDHardCeiling": {
+      "type": "number",
+      "title": "Decline gate D ceiling",
+      "description": "Level 3 Dependency & Coupling Depth (D) value above which the engine aborts the task with a Decline (lack of info) instead of entering the isolation loop.",
+      "default": 60
+    },
+    "decisionTtlHours": {
+      "type": "number",
+      "title": "Decision freshness window (hours)",
+      "description": "How long a computed orchestration decision stays valid for the Agent-call enforcement gate before it is considered stale and ignored.",
+      "default": 6
+    },
+    "sdlcAgentPattern": {
+      "type": "string",
+      "title": "SDLC agent name pattern",
+      "description": "Regex (case-insensitive) matched against subagent_type/description to decide which Agent calls the enforcement gate should govern. Leave default unless your spec/eval/design/implementation/doc/testing agents use different naming.",
+      "default": "spec|eval|design|implement|document|doc|test"
+    }
+  }
+}

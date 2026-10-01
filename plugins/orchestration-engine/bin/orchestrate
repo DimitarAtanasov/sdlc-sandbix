@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Thin wrapper so `orchestrate "<task description>"` works as a bare command
+# from the Bash tool while this plugin is enabled (added to PATH via bin/).
+set -euo pipefail
+exec node "${CLAUDE_PLUGIN_ROOT}/scripts/compute-complexity.js" "$@"

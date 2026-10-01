@@ -1,0 +1,18 @@
+{
+  "name": "sdlc-sandbix",
+  "owner": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "metadata": {
+    "description": "Sandbox marketplace for the AI SDLC framework: orchestration engine, plus the spec/eval, tech-design, implementation, documentation, and testing agents.",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "orchestration-engine",
+      "source": "./orchestration-engine",
+      "description": "Deterministic Complexity Vector (S, D, H) analysis and 3-level execution matrix that routes every task injected into the AI SDLC framework to the right pipeline strategy, model tier, token cap, and 3-way decision (draft / ask clarification / decline) before any LLM is invoked."
+    }
+  ]
+}
