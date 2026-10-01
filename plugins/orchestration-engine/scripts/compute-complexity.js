@@ -5,6 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { computeComplexityVector } = require('./lib/complexity');
 const { decideExecutionMatrix } = require('./lib/matrix');
+const { load: loadConfig } = require('./lib/config');
+const { beginRun } = require('./lib/lifecycle');
+const store = require('./lib/store');
 
 function parseArgs(argv) {
   const args = { files: [], json: false, task: null };
@@ -20,54 +23,24 @@ function parseArgs(argv) {
   return args;
 }
 
-function readUserConfig() {
-  const config = {};
-  for (const key of ['TIER1MODEL', 'TIER2MODEL', 'TIER3MODEL', 'DECLINEDHARDCEILING', 'DECISIONTTLHOURS']) {
-    const envVar = `CLAUDE_PLUGIN_OPTION_${key}`;
-    if (process.env[envVar] !== undefined) {
-      const camel = key
-        .toLowerCase()
-        .replace(/^tier(\d)model$/, 'tier$1Model')
-        .replace(/^declinedhardceiling$/, 'declineDHardCeiling')
-        .replace(/^decisionttlhours$/, 'decisionTtlHours');
-      const raw = process.env[envVar];
-      config[camel] = /^[0-9.]+$/.test(raw) ? Number(raw) : raw;
-    }
-  }
-  return config;
-}
-
-function pluginDataDir() {
-  return process.env.CLAUDE_PLUGIN_DATA || path.join(require('node:os').tmpdir(), 'orchestration-engine-data');
-}
-
-function persistDecision(result) {
-  try {
-    const dir = pluginDataDir();
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, 'last-decision.json'),
-      JSON.stringify({ ...result, computedAt: new Date().toISOString() }, null, 2)
-    );
-  } catch (err) {
-    process.stderr.write(`[orchestration-engine] warning: could not persist decision: ${err.message}\n`);
-  }
-}
-
-function formatReport(task, result) {
+function formatReport(task, result, sid) {
   const { vector, magnitude, inputs } = result.complexity;
   const m = result.matrix;
+  const spec = inputs.specsFound
+    ? (inputs.specRelevant ? `, closest=${inputs.closestSpec}` : ', no relevant spec - neutral distance')
+    : ', no specs/ found - neutral distance';
   const lines = [];
-  lines.push(`# Orchestration Engine - Complexity Vector & Matrix`);
+  lines.push('# Orchestration Engine - Complexity Vector & Matrix');
   lines.push('');
   if (task) lines.push(`Task: ${task}`);
+  lines.push(`Session: ${sid}`);
   lines.push(`Analysis mode: ${inputs.mode === 'diff' ? 'working-tree diff' : 'pre-implementation estimate'}`);
   lines.push(`Files considered (${inputs.fCount}): ${inputs.files.length ? inputs.files.join(', ') : '(none resolved - greenfield task)'}`);
   lines.push('');
-  lines.push(`## Complexity Vector C = [S, D, H]`);
+  lines.push('## Complexity Vector C = [S, D, H]');
   lines.push(`- S (Structural Mutation):        ${vector.S.toFixed(2)}  (deltaLines=${inputs.deltaLines}, fCount=${inputs.fCount})`);
   lines.push(`- D (Dependency & Coupling Depth): ${vector.D.toFixed(2)}  (sum of inbound+outbound refs across files)`);
-  lines.push(`- H (Historical Uncertainty):      ${vector.H.toFixed(2)}  (churn30d=${inputs.gitChurn30d}, cosineDistanceToSpecs=${inputs.cosineDistanceToSpecs.toFixed(2)}${inputs.specsFound ? `, closest=${inputs.closestSpec}` : ', no specs/ found - neutral default'})`);
+  lines.push(`- H (Historical Uncertainty):      ${vector.H.toFixed(2)}  (churn30d=${inputs.gitChurn30d}, cosineDistanceToSpecs=${inputs.cosineDistanceToSpecs.toFixed(2)}${spec})`);
   lines.push('');
   lines.push(`## Magnitude M = ${magnitude.toFixed(2)}`);
   lines.push('');
@@ -79,12 +52,15 @@ function formatReport(task, result) {
   if (m.threeWayDecision.skipSteps.length) {
     lines.push(`- Steps to skip: ${m.threeWayDecision.skipSteps.join(', ')}`);
   }
+  lines.push('');
+  lines.push('Pipeline run started. Check progress any time with: node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle.js" status');
   return lines.join('\n');
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const repoRoot = path.resolve(args.repo || process.env.CLAUDE_PROJECT_DIR || process.cwd());
+  const config = loadConfig();
 
   let stdinTask = '';
   if (!process.stdin.isTTY && !args.task) {
@@ -96,17 +72,19 @@ function main() {
   }
   const task = args.task || stdinTask;
 
-  const complexity = computeComplexityVector(repoRoot, task, args.files);
-  const matrix = decideExecutionMatrix(complexity, readUserConfig());
+  const complexity = computeComplexityVector(repoRoot, task, args.files, config);
+  const matrix = decideExecutionMatrix(complexity, config);
   const result = { task, repoRoot, complexity, matrix };
 
-  persistDecision(result);
-
-  if (args.json) {
-    process.stdout.write(JSON.stringify(result, null, 2) + '\n');
-  } else {
-    process.stdout.write(formatReport(task, result) + '\n');
+  const sid = store.currentSid();
+  try {
+    store.saveDecision(sid, result);
+    store.saveRun(sid, beginRun(result, config));
+  } catch (err) {
+    process.stderr.write(`[orchestration-engine] warning: could not persist decision: ${err.message}\n`);
   }
+
+  process.stdout.write((args.json ? JSON.stringify({ ...result, sessionId: sid }, null, 2) : formatReport(task, result, sid)) + '\n');
 }
 
 main();

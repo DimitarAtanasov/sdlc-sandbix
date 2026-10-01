@@ -44,7 +44,7 @@ function resolveTargets(repoRoot, taskDescription, explicitFiles) {
   }
 
   const wordCount = (taskDescription || '').split(/\s+/).filter(Boolean).length;
-  const estimatedDeltaLines = clamp(Math.round(wordCount / 3), 5, 500);
+  const estimatedDeltaLines = clamp(Math.round(wordCount / 3), 1, 500);
 
   return {
     mode: 'estimate',
@@ -70,10 +70,10 @@ function dependencyCouplingDepth(repoRoot, files) {
   return { total, perFile };
 }
 
-function historicalUncertaintyDensity(repoRoot, files, taskDescription) {
+function historicalUncertaintyDensity(repoRoot, files, taskDescription, config) {
   const gitChurn = git.churn(repoRoot, files, CHURN_WINDOW_DAYS);
   const specs = cosineDistanceToSpecs(repoRoot, taskDescription);
-  const H = 2.0 * gitChurn + 50.0 * specs.distance;
+  const H = config.churnWeight * gitChurn + config.specDistanceWeight * specs.distance;
   return { H, gitChurn, specs };
 }
 
@@ -86,7 +86,8 @@ function magnitude(S, D, H) {
  * per section 6.1 of the orchestration engine spec. Pure static analysis -
  * no LLM call involved.
  */
-function computeComplexityVector(repoRoot, taskDescription, explicitFiles) {
+function computeComplexityVector(repoRoot, taskDescription, explicitFiles, userConfig = {}) {
+  const config = { churnWeight: 2.0, specDistanceWeight: 50.0, ...userConfig };
   if (!git.isGitRepo(repoRoot)) {
     throw new Error(`Not a git repository: ${repoRoot}`);
   }
@@ -96,7 +97,7 @@ function computeComplexityVector(repoRoot, taskDescription, explicitFiles) {
 
   const S = structuralMutationScore(target.deltaLines, fCount);
   const { total: D, perFile: coupling } = dependencyCouplingDepth(repoRoot, target.files);
-  const { H, gitChurn, specs } = historicalUncertaintyDensity(repoRoot, target.files, taskDescription);
+  const { H, gitChurn, specs } = historicalUncertaintyDensity(repoRoot, target.files, taskDescription, config);
   const M = magnitude(S, D, H);
 
   return {
@@ -110,6 +111,7 @@ function computeComplexityVector(repoRoot, taskDescription, explicitFiles) {
       gitChurn30d: gitChurn,
       cosineDistanceToSpecs: specs.distance,
       specsFound: specs.specsFound,
+      specRelevant: specs.relevant,
       closestSpec: specs.bestMatch,
       coupling,
     },

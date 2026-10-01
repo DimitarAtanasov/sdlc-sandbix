@@ -12,7 +12,12 @@
     {
       "name": "orchestration-engine",
       "source": "./orchestration-engine",
-      "description": "Deterministic Complexity Vector (S, D, H) analysis and 3-level execution matrix that routes every task injected into the AI SDLC framework to the right pipeline strategy, model tier, token cap, and 3-way decision (draft / ask clarification / decline) before any LLM is invoked."
+      "description": "Deterministic Complexity Vector (S, D, H) analysis, the 3-level execution matrix (pipeline strategy, model tier, token cap), and the lifecycle state machine that enforces draft / ask-clarification / decline decisions and sequential gating across the SDLC pipeline agents."
+    },
+    {
+      "name": "sdlc-agents",
+      "source": "./sdlc-agents",
+      "description": "The six AI SDLC pipeline agents (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work, each reporting a draft / ask_clarification / decline decision for the orchestration engine to enforce."
     }
   ]
 }

@@ -1,11 +1,6 @@
 'use strict';
 
-const DEFAULTS = {
-  tier1Model: 'opus',
-  tier2Model: 'sonnet',
-  tier3Model: 'haiku',
-  declineDHardCeiling: 60,
-};
+const { DEFAULTS } = require('./config');
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -56,6 +51,7 @@ function threeWayDecisionFor(level, vector, config) {
         decision: 'ask_clarification',
         reason: `Level 2 Standard: H=${vector.H.toFixed(1)} > 40, the Evaluate Loop yields to Ask Clarification.`,
         skipSteps: [],
+        forceClarification: true,
       };
     }
     return {

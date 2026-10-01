@@ -12,16 +12,20 @@ Sandbox marketplace for the AI SDLC plugin framework.
   hook that auto-gates the spec/eval, tech-design, tech-design-eval,
   implementation, documentation, and testing agent calls that follow.
 
+- **[sdlc-agents](plugins/sdlc-agents/)** - the six pipeline agents (spec-eval, tech-design,
+  tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka
+  and .NET work. Each reports a draft / ask_clarification / decline decision the engine enforces.
+
 ## Install (works entirely from the Claude Code mobile/web app - no local CLI needed)
 
 ```
 /plugin marketplace add dimitaratanasov/sdlc-sandbix
 /plugin install orchestration-engine@sdlc-sandbix
+/plugin install sdlc-agents@sdlc-sandbix
 ```
 
-Then just describe a task and say "orchestrate this" - the engine handles the
-rest from your phone: complexity analysis, pipeline routing, model tier
-selection, and gating the downstream SDLC agents.
+Then describe a task and run `/orchestrate <task>`: the engine analyses complexity, picks the
+pipeline, model tier and token cap, and gates and records every pipeline agent that follows.
 
 ## specs/
 

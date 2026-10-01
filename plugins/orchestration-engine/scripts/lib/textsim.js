@@ -9,6 +9,11 @@ const STOPWORDS = new Set([
   'should', 'must', 'into', 'from', 'when', 'then', 'so', 'not',
 ]);
 
+// Below this best-match similarity a spec says nothing about the task, so its
+// distance is not evidence of ambiguity (see cosineDistanceToSpecs).
+const RELEVANCE_FLOOR = 0.05;
+const NEUTRAL_DISTANCE = 0.5;
+
 function tokenize(text) {
   return (text.toLowerCase().match(/[a-z0-9]+/g) || []).filter(
     (t) => t.length > 2 && !STOPWORDS.has(t)
@@ -45,8 +50,8 @@ function findSpecFiles(repoRoot, dirs = ['specs', 'docs/specs'], maxFiles = 50) 
       continue;
     }
     for (const entry of entries) {
-      if (entry.isFile && entry.isFile() && /\.(md|mdx|txt)$/i.test(entry.name)) {
-        found.push(path.join(entry.path || full, entry.name));
+      if (entry.isFile() && /\.(md|mdx|txt)$/i.test(entry.name)) {
+        found.push(path.join(entry.parentPath || entry.path || full, entry.name));
         if (found.length >= maxFiles) return found;
       }
     }
@@ -56,26 +61,31 @@ function findSpecFiles(repoRoot, dirs = ['specs', 'docs/specs'], maxFiles = 50) 
 
 /**
  * Cosine Distance to Specs (H factor input).
- * v1 heuristic: pure term-frequency cosine similarity against any specs/*.md
- * found in the repo (no embedding model - keeps the gate deterministic and
- * LLM-free per section 6 of the orchestration spec). Distance = 1 - bestMatch.
- * Returns { distance, specsFound, bestMatch } so callers can see when the
- * 0.5 neutral default (no specs directory) was used instead of a real score.
+ * Deterministic term-frequency cosine similarity against specs/**\/*.md (no
+ * embedding model, so the gate stays LLM-free). Distance = 1 - bestMatch.
+ *
+ * A spec that shares (almost) no vocabulary with the task is not evidence the
+ * task is ambiguous - it is simply unrelated - so when the best similarity is
+ * below RELEVANCE_FLOOR the distance falls back to the neutral 0.5, exactly as
+ * when no specs exist. Without this, every small task unrelated to any spec
+ * scored H=50 and could never reach Level 1.
+ *
+ * Returns { distance, specsFound, relevant, bestSimilarity, bestMatch }.
  */
-function cosineDistanceToSpecs(repoRoot, taskDescription, capBytes = 200_000) {
+function cosineDistanceToSpecs(repoRoot, taskDescription, opts = {}) {
+  const { capBytes = 200_000, floor = RELEVANCE_FLOOR, neutral = NEUTRAL_DISTANCE } = opts;
   const files = findSpecFiles(repoRoot);
   if (!files.length) {
-    return { distance: 0.5, specsFound: false, bestMatch: null };
+    return { distance: neutral, specsFound: false, relevant: false, bestSimilarity: 0, bestMatch: null };
   }
-  const taskTf = termFreq(tokenize(taskDescription));
+  const taskTf = termFreq(tokenize(taskDescription || ''));
   let best = 0;
   let bestFile = null;
   for (const file of files) {
     try {
       const stat = fs.statSync(file);
       if (!stat.isFile() || stat.size > capBytes) continue;
-      const content = fs.readFileSync(file, 'utf8');
-      const sim = cosine(taskTf, termFreq(tokenize(content)));
+      const sim = cosine(taskTf, termFreq(tokenize(fs.readFileSync(file, 'utf8'))));
       if (sim > best) {
         best = sim;
         bestFile = path.relative(repoRoot, file);
@@ -84,7 +94,17 @@ function cosineDistanceToSpecs(repoRoot, taskDescription, capBytes = 200_000) {
       // skip unreadable file
     }
   }
-  return { distance: 1 - best, specsFound: true, bestMatch: bestFile };
+  const relevant = best >= floor;
+  return {
+    distance: relevant ? 1 - best : neutral,
+    specsFound: true,
+    relevant,
+    bestSimilarity: best,
+    bestMatch: relevant ? bestFile : null,
+  };
 }
 
-module.exports = { tokenize, termFreq, cosine, findSpecFiles, cosineDistanceToSpecs };
+module.exports = {
+  tokenize, termFreq, cosine, findSpecFiles, cosineDistanceToSpecs,
+  RELEVANCE_FLOOR, NEUTRAL_DISTANCE,
+};
