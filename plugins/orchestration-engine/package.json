@@ -1,7 +1,7 @@
 {
   "name": "orchestration-engine",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Test harness for the orchestration-engine plugin (the plugin itself has no runtime dependencies).",
   "scripts": { "test": "node --test \"tests/*.test.js\"" },
   "engines": { "node": ">=20" }

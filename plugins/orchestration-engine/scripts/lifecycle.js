@@ -12,6 +12,7 @@
 const { load: loadConfig } = require('./lib/config');
 const store = require('./lib/store');
 const lifecycle = require('./lib/lifecycle');
+const history = require('./lib/history');
 
 function flags(argv) {
   const out = { _: [] };
@@ -56,12 +57,14 @@ function main() {
         missing_info: typeof f.missing === 'string' ? f.missing.split(';').filter(Boolean) : [],
         summary: typeof f.summary === 'string' ? f.summary : '',
       });
+      history.closeIfFinished(sid, run);
       store.saveRun(sid, run);
       process.stdout.write(`${step} -> ${res.status}; next: ${res.nextAction}${res.coerced.length ? `\nAdjusted: ${res.coerced.join(' ')}` : ''}\n`);
       break;
     }
     case 'reset':
       if (found) {
+        history.closeAsReplaced(sid, run);
         store.saveRun(sid, lifecycle.beginRun(found.decision, config));
         process.stdout.write('Run reset from the current decision.\n');
       } else {

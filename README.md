@@ -8,9 +8,9 @@ Sandbox marketplace for the AI SDLC plugin framework.
   Orchestration Engine: computes the Complexity Vector & Magnitude from
   local repo/git state and routes every task through the 3-level execution
   matrix (pipeline strategy, model tier, token cap, 3-way decision) before
-  any LLM is invoked. Includes a `/orchestrate` skill and a `PreToolUse`
-  hook that auto-gates the spec/eval, tech-design, tech-design-eval,
-  implementation, documentation, and testing agent calls that follow.
+  any LLM is invoked. Includes a `/orchestrate` skill, hooks that gate and record
+  every pipeline agent call, run history, and `/agent-architect` to design or
+  audit the agent team from real run data.
 
 - **[sdlc-agents](plugins/sdlc-agents/)** - the six pipeline agents (spec-eval, tech-design,
   tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka

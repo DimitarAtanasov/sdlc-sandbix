@@ -55,7 +55,7 @@ function beginRun(result, config) {
   const level = matrix.level;
   const decision = matrix.threeWayDecision;
   const steps = Object.fromEntries(
-    STEPS.map((s) => [s, { status: 'pending', cycles: 0, attempts: 0 }])
+    STEPS.map((s) => [s, { status: 'pending', cycles: 0, attempts: 0, revisions: 0, clarifications: 0 }])
   );
   if (level === 1) for (const s of LEVEL1_SKIPPED) steps[s].status = 'skipped';
 
@@ -63,6 +63,9 @@ function beginRun(result, config) {
   return {
     version: 1,
     startedAt: new Date().toISOString(),
+    task: String(result.task || '').slice(0, 200),
+    magnitude: result.complexity ? result.complexity.magnitude : null,
+    vector: result.complexity ? result.complexity.vector : null,
     level,
     levelName: matrix.levelName,
     halted,
@@ -158,6 +161,7 @@ function nextActionAfterApproval(run) {
 function recordReport(run, step, rawReport) {
   const report = normalizeReport(rawReport);
   const st = run.steps[step];
+  if (!st.attempts) st.attempts = 1; // a manual 'lifecycle record' implies the step ran
   const coerced = [];
   let { decision } = report;
 
@@ -181,6 +185,7 @@ function recordReport(run, step, rawReport) {
   let nextAction;
   if (decision === 'ask_clarification') {
     st.status = 'needs_clarification';
+    st.clarifications = (st.clarifications || 0) + 1;
     run.pendingQuestions = report.missing_info;
     nextAction = 'ask_user';
   } else if (decision === 'decline') {
@@ -198,6 +203,7 @@ function recordReport(run, step, rawReport) {
         nextAction = 'abort';
       } else {
         st.status = 'revise';
+        st.revisions = (st.revisions || 0) + 1;
         const producer = PRODUCER_OF[step];
         if (producer) run.steps[producer].status = 'needs_rework';
         nextAction = `rerun:${producer || step}`;

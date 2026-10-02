@@ -62,11 +62,28 @@ Hooks (`hooks/hooks.json`):
 
 State is per session under `${CLAUDE_PLUGIN_DATA}/sessions/<session-id>/{decision,run}.json`.
 
-## 3. Use
+## 3. Run history and the agent-architect skill
+
+Every finished run (completed, halted, or abandoned when a new `/orchestrate` replaces an unfinished one) is
+appended to `${CLAUDE_PLUGIN_DATA}/history.jsonl` with per-step attempts, revisions and clarifications
+(task text truncated to 200 chars, stored locally only). `scripts/history.js summary|list|path` turns it
+into per-step approval / revision / clarification / decline rates plus signals: a review step that
+approves first time in every run is a *rubber-stamp candidate*; a step that is declined, asks, or
+requests revisions often is a *blocker*. Steps need 5 runs before they are judged.
+
+`/agent-architect` uses that evidence to **design** a new agent team or **audit** the current one
+(keep / make conditional / merge / remove, with the numbers cited). It grounds itself in the agent
+files that actually exist, asks questions before designing, prefers deterministic code over agents,
+keeps the team small, and does not edit anything until you approve the verdicts. It is adapted from a
+popular generic "AI agent architect" prompt, minus the parts that don't survive contact with a real
+build (invented tools, nine-section dumps, no questions asked).
+
+## 4. Use
 
 ```
 /orchestrate Add a u_priority_override field to the NeedIt scripted REST API and validate it server-side
 /pipeline-status
+/agent-architect Audit the SDLC pipeline agents: is each one necessary?
 ```
 
 CLI (the plugin's `bin/` is on `PATH`): `orchestrate --json "<task>"`,
@@ -75,16 +92,16 @@ CLI (the plugin's `bin/` is on `PATH`): `orchestrate --json "<task>"`,
 Pair it with the `sdlc-agents` plugin, or point `sdlcAgentPattern` at your own agents. Agents whose
 names contain `spec`, `design`, `design`+`eval`, `impl`, `doc`, `test` are mapped to the matching step.
 
-## 4. Config (plugin user config)
+## 5. Config (plugin user config)
 
 `tier1Model`/`tier2Model`/`tier3Model`, `declineDHardCeiling` (60), `decisionTtlHours` (6),
 `sdlcAgentPattern`, `churnWeight` (2), `specDistanceWeight` (50), `minEvalCycles` (2),
 `maxEvalCycles` (4), `minConfidence` (0.5), `requireDecisionBlock` (true).
 
-## 5. Tests
+## 6. Tests
 
-`npm test` in this directory (Node >= 20, no dependencies): 42 tests covering the matrix, the cosine
-check, the state machine, and the hooks/CLI end to end against temp git repos.
+`npm test` in this directory (Node >= 20, no dependencies): 47 tests covering the matrix, the cosine
+check, the state machine, run history, and the hooks/CLI end to end against temp git repos.
 
 ## Known limits
 

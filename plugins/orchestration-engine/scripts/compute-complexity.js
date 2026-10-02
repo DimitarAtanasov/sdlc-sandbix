@@ -8,6 +8,7 @@ const { decideExecutionMatrix } = require('./lib/matrix');
 const { load: loadConfig } = require('./lib/config');
 const { beginRun } = require('./lib/lifecycle');
 const store = require('./lib/store');
+const history = require('./lib/history');
 
 function parseArgs(argv) {
   const args = { files: [], json: false, task: null };
@@ -78,8 +79,11 @@ function main() {
 
   const sid = store.currentSid();
   try {
+    history.closeAsReplaced(sid, store.loadRun(sid));
+    const run = beginRun(result, config);
+    history.closeIfFinished(sid, run); // e.g. declined by the Level 3 gate before any agent ran
     store.saveDecision(sid, result);
-    store.saveRun(sid, beginRun(result, config));
+    store.saveRun(sid, run);
   } catch (err) {
     process.stderr.write(`[orchestration-engine] warning: could not persist decision: ${err.message}\n`);
   }

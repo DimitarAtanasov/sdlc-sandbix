@@ -12,7 +12,7 @@
     {
       "name": "orchestration-engine",
       "source": "./orchestration-engine",
-      "description": "Deterministic Complexity Vector (S, D, H) analysis, the 3-level execution matrix (pipeline strategy, model tier, token cap), and the lifecycle state machine that enforces draft / ask-clarification / decline decisions and sequential gating across the SDLC pipeline agents."
+      "description": "Deterministic Complexity Vector (S, D, H) analysis, the 3-level execution matrix (pipeline strategy, model tier, token cap), the lifecycle state machine that enforces draft / ask-clarification / decline and sequential gating across the SDLC pipeline agents, run history, and an agent-architect skill to design or audit the agent team from that data."
     },
     {
       "name": "sdlc-agents",

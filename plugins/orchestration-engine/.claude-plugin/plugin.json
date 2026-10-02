@@ -1,8 +1,8 @@
 {
   "name": "orchestration-engine",
   "displayName": "AI SDLC Orchestration Engine",
-  "version": "0.2.0",
-  "description": "Computes the Complexity Vector (S, D, H) from local repo/git state, routes each task through the 3-level execution matrix (pipeline strategy, model tier, token cap), and enforces the 3-way lifecycle (draft / ask-clarification / decline) across the SDLC pipeline agents.",
+  "version": "0.3.0",
+  "description": "Computes the Complexity Vector (S, D, H) from local repo/git state, routes each task through the 3-level execution matrix (pipeline strategy, model tier, token cap), enforces the 3-way lifecycle (draft / ask-clarification / decline) across the SDLC pipeline agents, and records run history so agent-team decisions rest on data.",
   "author": {
     "name": "Dimitar Atanasov",
     "email": "miteto1990@gmail.com"

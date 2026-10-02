@@ -12,6 +12,7 @@ const fs = require('node:fs');
 const { load: loadConfig } = require('./lib/config');
 const store = require('./lib/store');
 const lifecycle = require('./lib/lifecycle');
+const history = require('./lib/history');
 
 function main() {
   let input = {};
@@ -51,6 +52,7 @@ function main() {
   }
 
   lifecycle.recordReport(run, step, report);
+  history.closeIfFinished(sid, run);
   store.saveRun(sid, run);
 }
 
