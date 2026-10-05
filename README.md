@@ -4,17 +4,11 @@ Sandbox marketplace for the AI SDLC plugin framework.
 
 ## Plugins
 
-- **[orchestration-engine](plugins/orchestration-engine/)** - the Automated
-  Orchestration Engine: computes the Complexity Vector & Magnitude from
-  local repo/git state and routes every task through the 3-level execution
-  matrix (pipeline strategy, model tier, token cap, 3-way decision) before
-  any LLM is invoked. Includes a `/orchestrate` skill, hooks that gate and record
-  every pipeline agent call, run history, and `/agent-architect` to design or
-  audit the agent team from real run data.
-
-- **[sdlc-agents](plugins/sdlc-agents/)** - the six pipeline agents (spec-eval, tech-design,
-  tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka
-  and .NET work. Each reports a draft / ask_clarification / decline decision the engine enforces.
+- **[orchestration-engine](plugins/orchestration-engine/)** - the conductor. `/sdlc <task>` runs the whole flow: complexity
+  routing, gated pipeline, deterministic verification, delivery as a draft PR, and a retro. Hooks enforce the rules; a
+  capped human-approved lessons file and run history in `.sdlc/` make it learn.
+- **[sdlc-agents](plugins/sdlc-agents/)** - the six pipeline agents (spec-eval, tech-design, tech-design-eval, implementation,
+  documentation, testing) for ServiceNow scripted REST, Kafka and .NET work.
 
 ## Install (works entirely from the Claude Code mobile/web app - no local CLI needed)
 
@@ -24,8 +18,9 @@ Sandbox marketplace for the AI SDLC plugin framework.
 /plugin install sdlc-agents@sdlc-sandbix
 ```
 
-Then describe a task and run `/orchestrate <task>`: the engine analyses complexity, picks the
-pipeline, model tier and token cap, and gates and records every pipeline agent that follows.
+Then, in the repo you want to work on, run `/sdlc-setup` once (commit what it writes), and from then on just
+`/sdlc <describe the change>`. It asks only what it must, runs the agents in order, verifies the result, and
+asks before opening a draft PR. Nothing is ever merged automatically.
 
 ## specs/
 

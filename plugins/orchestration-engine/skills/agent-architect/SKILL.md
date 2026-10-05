@@ -16,8 +16,8 @@ claim in something you actually read or ran, and never invent tools, agents or n
    decision contract. Say plainly which locations you could not see.
 2. Read the recorded run evidence:
    ```
-   OE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" node "${CLAUDE_PLUGIN_ROOT}/scripts/history.js" summary
-   OE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" node "${CLAUDE_PLUGIN_ROOT}/scripts/history.js" list --limit 10
+   sdlc-history summary
+   sdlc-history list --limit 10
    ```
    It reports, per step, runs, approval, revision, clarification and decline rates, plus
    signals such as "rubber-stamp candidate". A step needs at least 5 runs to be judged. With

@@ -2,18 +2,20 @@
 
 // Run history: one JSON line per finished pipeline run (completed, halted, or
 // abandoned when a new /orchestrate replaces an unfinished one). It turns
-// "is this agent worth having?" from an opinion into counts. Stored locally in
-// the plugin data dir; task text is truncated to 200 chars.
+// "is this agent worth having?" from an opinion into counts. Stored in the
+// project at .sdlc/history.jsonl so it is committed with the work and survives
+// ephemeral (web) containers; falls back to the plugin data dir outside a repo.
+// Task text is truncated to 200 chars.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const store = require('./store');
-const { STEPS, EVAL_STEPS } = require('./lifecycle');
+const { STEPS, MULTI_CYCLE_STEPS: EVAL_STEPS } = require('./lifecycle');
 
 const MIN_RUNS = 5; // below this a step's rates are not trusted
 
-function historyFile() {
-  return path.join(store.dataDir(), 'history.jsonl');
+function historyFile(repoRoot) {
+  return repoRoot ? path.join(repoRoot, '.sdlc', 'history.jsonl') : path.join(store.dataDir(), 'history.jsonl');
 }
 
 function entryFromRun(run, outcome, sid) {
@@ -25,6 +27,7 @@ function entryFromRun(run, outcome, sid) {
     magnitude: run.magnitude,
     vector: run.vector,
     outcome,
+    hotfix: Boolean(run.hotfix),
     haltReason: run.haltReason || null,
     steps: Object.fromEntries(
       Object.entries(run.steps).map(([name, st]) => [name, {
@@ -42,8 +45,9 @@ function entryFromRun(run, outcome, sid) {
 function closeRun(sid, run, outcome) {
   if (!run || run.logged) return false;
   try {
-    fs.mkdirSync(path.dirname(historyFile()), { recursive: true });
-    fs.appendFileSync(historyFile(), JSON.stringify(entryFromRun(run, outcome, sid)) + '\n');
+    const file = historyFile(run.repoRoot);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.appendFileSync(file, JSON.stringify(entryFromRun(run, outcome, sid)) + '\n');
   } catch {
     return false; // history is best-effort; never break the pipeline for it
   }
@@ -66,10 +70,10 @@ function closeAsReplaced(sid, run) {
   return touched ? closeRun(sid, run, 'abandoned') : false;
 }
 
-function readAll() {
+function readAll(repoRoot) {
   let raw;
   try {
-    raw = fs.readFileSync(historyFile(), 'utf8');
+    raw = fs.readFileSync(historyFile(repoRoot), 'utf8');
   } catch {
     return [];
   }

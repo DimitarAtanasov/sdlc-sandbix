@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { tmpDir, gitRepo, run, json } = require('./helpers');
+const { tmpDir, gitRepo, write, run, json } = require('./helpers');
 
 function ctx() {
   return { repo: gitRepo({ 'README.md': 'hello\n' }), data: tmpDir('oe-data-') };
@@ -12,14 +12,23 @@ function ctx() {
 const env = (c, sid = 's1') => ({ CLAUDE_PROJECT_DIR: c.repo, CLAUDE_PLUGIN_DATA: c.data, CLAUDE_SESSION_ID: sid });
 const orchestrate = (c, task, sid) => json(run('compute-complexity.js', { args: ['--json', task], env: env(c, sid) }));
 const record = (c, step, ...args) => run('lifecycle.js', { args: ['record', step, ...args], env: env(c) });
-const entries = (c) => fs.readFileSync(path.join(c.data, 'history.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+const histFile = (c) => path.join(c.repo, '.sdlc', 'history.jsonl');
+// A run is only complete once verification passed and the work is delivered.
+const finish = (c) => {
+  record(c, 'implementation', '--decision', 'draft');
+  record(c, 'documentation', '--decision', 'draft');
+  record(c, 'testing', '--decision', 'draft', '--verdict', 'approve');
+  write(c.repo, '.sdlc/verify.json', JSON.stringify({ commands: [{ name: 'ok', cmd: 'true' }] }));
+  assert.equal(run('verify.js', { args: ['run'], env: env(c) }).status, 0);
+  const d = run('lifecycle.js', { args: ['deliver', '--pr', 'https://x/pr/1'], env: env(c) });
+  assert.equal(d.status, 0, d.stderr);
+};
+const entries = (c) => fs.readFileSync(histFile(c), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
 
 test('a completed run is logged once with per-step counters', () => {
   const c = ctx();
   orchestrate(c, 'Fix a typo in the README');
-  record(c, 'implementation', '--decision', 'draft');
-  record(c, 'documentation', '--decision', 'draft');
-  record(c, 'testing', '--decision', 'draft');
+  finish(c);
   record(c, 'testing', '--decision', 'draft'); // extra call must not double-log
   const logged = entries(c);
   assert.equal(logged.length, 1);
@@ -34,7 +43,7 @@ test('replacing an unfinished run logs it as abandoned; untouched runs are not l
   const c = ctx();
   orchestrate(c, 'Fix a typo in the README');
   orchestrate(c, 'Fix another typo'); // first run never started: nothing to log
-  assert.equal(fs.existsSync(path.join(c.data, 'history.jsonl')), false);
+  assert.equal(fs.existsSync(histFile(c)), false);
   record(c, 'implementation', '--decision', 'draft');
   orchestrate(c, 'Third task'); // replaces a started, unfinished run
   const logged = entries(c);
@@ -83,14 +92,12 @@ test('summary computes per-step rates and flags rubber-stamp and blocker steps',
 
 test('history CLI: summary, list, path, and the empty case', () => {
   const c = ctx();
-  const h = (...args) => run('history.js', { args, env: { CLAUDE_PLUGIN_DATA: c.data } });
+  const h = (...args) => run('history.js', { args, env: { CLAUDE_PLUGIN_DATA: c.data, CLAUDE_PROJECT_DIR: c.repo } });
   assert.match(h('summary').stdout, /No pipeline runs recorded/);
   orchestrate(c, 'Fix a typo in the README');
-  record(c, 'implementation', '--decision', 'draft');
-  record(c, 'documentation', '--decision', 'draft');
-  record(c, 'testing', '--decision', 'draft');
+  finish(c);
   assert.match(h('summary').stdout, /Runs: 1 \(completed 1/);
   assert.equal(json(h('summary', '--json')).runs, 1);
   assert.match(h('list').stdout, /L1\s+completed\s+M=.*Fix a typo/);
-  assert.equal(h('path').stdout.trim(), path.join(c.data, 'history.jsonl'));
+  assert.equal(h('path').stdout.trim(), histFile(c));
 });

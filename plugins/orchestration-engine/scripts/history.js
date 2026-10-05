@@ -2,10 +2,11 @@
 'use strict';
 
 // Pipeline run history.
-//   history.js summary [--json] [--min-runs N]   per-step stats + necessity signals
+//   history.js summary [--json] [--min-runs N] [--repo DIR]   per-step stats + necessity signals
 //   history.js list [--limit N]                  most recent runs
 //   history.js path                              history file location
 
+const path = require('node:path');
 const history = require('./lib/history');
 
 function flags(argv) {
@@ -20,9 +21,10 @@ function flags(argv) {
 function main() {
   const [cmd = 'summary', ...rest] = process.argv.slice(2);
   const f = flags(rest);
-  const entries = history.readAll();
+  const repoRoot = path.resolve(typeof f.repo === 'string' ? f.repo : process.env.CLAUDE_PROJECT_DIR || process.cwd());
+  const entries = history.readAll(repoRoot);
   if (cmd === 'path') {
-    process.stdout.write(history.historyFile() + '\n');
+    process.stdout.write(history.historyFile(repoRoot) + '\n');
   } else if (cmd === 'summary') {
     const sum = history.summarize(entries, f['min-runs'] ? Number(f['min-runs']) : history.MIN_RUNS);
     process.stdout.write((f.json ? JSON.stringify(sum, null, 2) : history.formatSummary(sum)) + '\n');

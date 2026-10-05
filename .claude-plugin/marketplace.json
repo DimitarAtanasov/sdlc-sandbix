@@ -12,12 +12,12 @@
     {
       "name": "orchestration-engine",
       "source": "./orchestration-engine",
-      "description": "Deterministic Complexity Vector (S, D, H) analysis, the 3-level execution matrix (pipeline strategy, model tier, token cap), the lifecycle state machine that enforces draft / ask-clarification / decline and sequential gating across the SDLC pipeline agents, run history, and an agent-architect skill to design or audit the agent team from that data."
+      "description": "The AI SDLC conductor: /sdlc runs complexity routing, the gated pipeline, deterministic verification, draft-PR delivery and a retro; hooks enforce sequencing and verification-before-done; run history and a capped, human-approved lessons file live in the repo."
     },
     {
       "name": "sdlc-agents",
       "source": "./sdlc-agents",
-      "description": "The six AI SDLC pipeline agents (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work, each reporting a draft / ask_clarification / decline decision for the orchestration engine to enforce."
+      "description": "The six AI SDLC pipeline agents (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work, reporting draft / ask_clarification / decline decisions and approve / revise verdicts."
     }
   ]
 }

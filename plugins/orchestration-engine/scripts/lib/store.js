@@ -26,7 +26,7 @@ function safeSid(sid) {
 }
 
 function currentSid() {
-  return safeSid(process.env.CLAUDE_SESSION_ID || DEFAULT_SID);
+  return safeSid(process.env.CLAUDE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || DEFAULT_SID);
 }
 
 function sessionDir(sid) {
@@ -53,17 +53,86 @@ function saveDecision(sid, result) {
 }
 
 function saveRun(sid, run) {
+  run.updatedAt = new Date().toISOString();
   writeJson(path.join(sessionDir(sid), 'run.json'), run);
+}
+
+// Cross-process lock so parallel hook invocations (two subagents finishing at
+// once) cannot overwrite each other's read-modify-write of run.json.
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function withLock(sid, fn, { timeoutMs = 5000, staleMs = 10_000 } = {}) {
+  const dir = sessionDir(sid);
+  fs.mkdirSync(dir, { recursive: true });
+  const lock = path.join(dir, '.lock');
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      fs.mkdirSync(lock);
+      break;
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+      try {
+        if (Date.now() - fs.statSync(lock).mtimeMs > staleMs) fs.rmdirSync(lock);
+      } catch {
+        // lock vanished between stat and rmdir - retry
+      }
+      if (Date.now() > deadline) break; // proceed unlocked rather than wedge the pipeline
+      sleepSync(15 + Math.floor(Math.random() * 25));
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      fs.rmdirSync(lock);
+    } catch {
+      // already released or stolen as stale
+    }
+  }
+}
+
+/** Returns the session's run, creating it from `factory()` if absent (race-safe). */
+function ensureRun(sid, factory) {
+  return withLock(sid, () => {
+    let run = loadRun(sid);
+    if (!run) {
+      run = factory();
+      saveRun(sid, run);
+    }
+    return run;
+  });
+}
+
+/**
+ * Atomic read-modify-write of the session's run. `fn(run)` mutates the run
+ * and may return a value; a null/undefined run is passed through so callers can
+ * create one. The run is saved unless fn returns the sentinel `store.SKIP_SAVE`.
+ */
+const SKIP_SAVE = Symbol('skip-save');
+function updateRun(sid, fn) {
+  return withLock(sid, () => {
+    const run = loadRun(sid);
+    const result = fn(run);
+    if (result === SKIP_SAVE) return undefined;
+    if (run) saveRun(sid, run);
+    return result;
+  });
 }
 
 function loadRun(sid) {
   return readJson(path.join(sessionDir(sid), 'run.json'));
 }
 
+/** Decisions expire ttlHours after the last activity on the run, not after creation. */
 function loadFreshDecision(sid, ttlHours) {
   const decision = readJson(path.join(sessionDir(sid), 'decision.json'));
   if (!decision) return null;
-  const ageHours = (Date.now() - new Date(decision.computedAt).getTime()) / 3_600_000;
+  const run = loadRun(sid);
+  const last = Math.max(new Date(decision.computedAt).getTime(), run && run.updatedAt ? new Date(run.updatedAt).getTime() : 0);
+  const ageHours = (Date.now() - last) / 3_600_000;
   return ageHours > ttlHours ? null : decision;
 }
 
@@ -81,5 +150,5 @@ function locate(sessionId, ttlHours) {
 
 module.exports = {
   DEFAULT_SID, dataDir, safeSid, currentSid, sessionDir,
-  saveDecision, saveRun, loadRun, loadFreshDecision, locate,
+  saveDecision, saveRun, loadRun, ensureRun, updateRun, withLock, SKIP_SAVE, loadFreshDecision, locate,
 };

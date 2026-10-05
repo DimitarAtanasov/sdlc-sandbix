@@ -17,6 +17,7 @@ const SCHEMA = {
   maxEvalCycles: { type: 'number', default: 4 },
   minConfidence: { type: 'number', default: 0.5 },
   requireDecisionBlock: { type: 'boolean', default: true },
+  injectLessons: { type: 'boolean', default: true },
 };
 
 const DEFAULTS = Object.fromEntries(Object.entries(SCHEMA).map(([k, v]) => [k, v.default]));

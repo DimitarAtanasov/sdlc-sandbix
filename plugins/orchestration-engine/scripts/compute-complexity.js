@@ -11,11 +11,12 @@ const store = require('./lib/store');
 const history = require('./lib/history');
 
 function parseArgs(argv) {
-  const args = { files: [], json: false, task: null };
+  const args = { files: [], json: false, hotfix: false, task: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--json') args.json = true;
+    else if (a === '--hotfix') args.hotfix = true;
     else if (a === '--files') args.files = (argv[++i] || '').split(',').filter(Boolean);
     else if (a === '--repo') args.repo = argv[++i];
     else rest.push(a);
@@ -35,6 +36,7 @@ function formatReport(task, result, sid) {
   lines.push('');
   if (task) lines.push(`Task: ${task}`);
   lines.push(`Session: ${sid}`);
+  if (result.hotfix) lines.push('Mode: HOTFIX (design/eval skipped; testing and verification mandatory)');
   lines.push(`Analysis mode: ${inputs.mode === 'diff' ? 'working-tree diff' : 'pre-implementation estimate'}`);
   lines.push(`Files considered (${inputs.fCount}): ${inputs.files.length ? inputs.files.join(', ') : '(none resolved - greenfield task)'}`);
   lines.push('');
@@ -54,7 +56,7 @@ function formatReport(task, result, sid) {
     lines.push(`- Steps to skip: ${m.threeWayDecision.skipSteps.join(', ')}`);
   }
   lines.push('');
-  lines.push('Pipeline run started. Check progress any time with: node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle.js" status');
+  lines.push('Pipeline run started. Check progress any time with: sdlc-lifecycle status');
   return lines.join('\n');
 }
 
@@ -75,15 +77,17 @@ function main() {
 
   const complexity = computeComplexityVector(repoRoot, task, args.files, config);
   const matrix = decideExecutionMatrix(complexity, config);
-  const result = { task, repoRoot, complexity, matrix };
+  const result = { task, repoRoot, complexity, matrix, hotfix: args.hotfix };
 
   const sid = store.currentSid();
   try {
-    history.closeAsReplaced(sid, store.loadRun(sid));
-    const run = beginRun(result, config);
-    history.closeIfFinished(sid, run); // e.g. declined by the Level 3 gate before any agent ran
-    store.saveDecision(sid, result);
-    store.saveRun(sid, run);
+    store.withLock(sid, () => {
+      history.closeAsReplaced(sid, store.loadRun(sid));
+      const run = beginRun(result, config, { hotfix: args.hotfix });
+      history.closeIfFinished(sid, run); // e.g. declined by the Level 3 gate before any agent ran
+      store.saveDecision(sid, result);
+      store.saveRun(sid, run);
+    });
   } catch (err) {
     process.stderr.write(`[orchestration-engine] warning: could not persist decision: ${err.message}\n`);
   }

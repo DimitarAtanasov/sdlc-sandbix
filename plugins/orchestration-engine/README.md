@@ -1,111 +1,107 @@
 # orchestration-engine
 
-The Automated Orchestration Engine for the AI SDLC framework
-(`spec-eval -> tech-design -> tech-design-eval -> implementation -> documentation | testing`).
-It runs deterministic static analysis on a task before any LLM is invoked, routes it
-through the 3-level execution matrix, and then **enforces** the 3-way lifecycle
-(draft / ask clarification / decline) on the pipeline agents that follow.
+The conductor behind the AI SDLC framework. One command, `/sdlc <task>`, takes a request from intake
+to a verified draft PR; deterministic code (not prompts) decides what may run, in what order, with
+which model, and when the work counts as done.
 
-## 1. Complexity Vector and Matrix
+```
+intake -> route (complexity score) -> spec-eval -> tech-design -> tech-design-eval
+       -> implementation -> documentation | testing -> verify -> deliver (draft PR) -> retro
+```
 
-`C = [S, D, H]`, computed from local repo/git state (no LLM):
+## What enforces what
 
-- `S` = `1.5*deltaLines + 10*fileCount`. Uses the real `git diff` plus untracked files once
-  code exists; before that, `deltaLines ~ words/3` (min 1, max 500) and files named in the task.
-- `D` = sum over target files of inbound references (`git grep` hits on the file's basename) and
-  outbound dependencies (import/using/require/`$ref` lines).
-- `H` = `churnWeight*churn30d + specDistanceWeight*cosineDistanceToSpecs` (defaults 2 and 50).
-  The distance is a TF-cosine against `specs/**/*.md` (or `docs/specs/`). A spec sharing almost
-  no vocabulary with the task is *unrelated*, not evidence of ambiguity, so it scores the neutral
-  0.5, the same as having no specs. (Without this every small task that no spec mentioned
-  scored `H=50` and could not reach Level 1.)
+| Concern | Mechanism |
+|---|---|
+| Is the task small or large? | **Complexity vector** `[S, D, H]` from git/repo state, no LLM (below) |
+| Which model, token budget, steps? | **3-level matrix**: Level 1 skips design/eval (haiku, 5k cap); Level 2 full pipeline (sonnet, 50-150k); Level 3 isolation loop (opus) |
+| Agent steps run in order, no skipping | `PreToolUse` gate on `Agent`: sequential stages, skipped steps denied, model filled in |
+| Each step ends in draft / ask / decline | **State machine** fed by the agent's `<decision>` block (`SubagentStop`), policy applied on top |
+| "Done" means verified | `sdlc-verify` runs the repo's checks and hashes the exact code; **delivery is refused** unless that hash is current and passing; a `Stop` hook blocks "done" while work is unverified |
+| Humans stay in control | Decline gate, ask-clarification, a logged **override** only the user can authorize, draft PR, **never merges** |
+| The pipeline learns | Run **history** and a capped, human-approved **lessons** file, both in the repo (`.sdlc/`) |
 
-`M = sqrt(0.4*S^2 + 0.4*D^2 + 0.2*H^2)`:
+### Complexity vector
 
-| Level | M | Pipeline | Model tier | Token cap | 3-way default |
-|---|---|---|---|---|---|
-| 1 Micro-Task | < 15 | design/eval steps skipped | Tier 3 (`haiku`) | 5,000 | `draft` only (ask/decline disabled) |
-| 2 Standard | 15-70 | full sequential pipeline | Tier 2 (`sonnet`) | dynamic 50k-150k | `ask_clarification` when `H > 40` |
-| 3 Macro Arch | > 70 | isolation loop (multi-cycle evals) | Tier 1 (`opus`) | max context | decline when `D > declineDHardCeiling` |
+`S = 1.5*deltaLines + 10*files` (real `git diff` + untracked files, else a text estimate; `.sdlc/` ignored).
+`D` = inbound references (`git grep` of the file's basename) + outbound imports. `H = 2*churn30d + 50*cosineDistanceToSpecs`
+(TF-cosine against `specs/`; an unrelated spec counts as neutral 0.5, not as ambiguity). `M = sqrt(0.4S^2 + 0.4D^2 + 0.2H^2)`.
+Level 1: M < 15, Level 2: 15-70, Level 3: > 70. Weights, ceiling and models are configurable.
 
-Tiers map to Claude models by default and can be changed in user config. Token caps are advisory:
-Claude Code has no per-subagent hard limit, so the cap is surfaced to the agent, not metered.
+### The state machine
 
-## 2. Lifecycle state machine (3-way decisioning)
+Per step the agent reports `draft`, `ask_clarification` or `decline`; review steps (`spec-eval`, `tech-design-eval`, `testing`)
+add `verdict: approve|revise`. Policy applied by the engine:
 
-Every pipeline agent ends its reply with
-`<decision>{"decision":"draft|ask_clarification|decline","confidence":0.8,"verdict":"approve|revise","missing_info":[],"summary":"..."}</decision>`.
+- Level 1: only `draft` (ask/decline coerced). Level 2-3: low-confidence `draft` becomes `ask_clarification`. Level 2 with `H > 40`: the first step must ask once.
+- `revise` from `tech-design-eval` sends `tech-design` back; `revise` from `testing` sends `implementation` back (testing finding bugs is not a halt).
+- Re-approving a step resets downstream steps that consumed its old output.
+- Level 3: spec-eval and tech-design-eval need `minEvalCycles` (2) *independent* approvals (a revise resets the count).
+- An exhausted revision loop asks the user (and restarts the budget) instead of halting.
+- `decline` (or the Level 3 decline gate, `D > ceiling`) halts the run; `sdlc-lifecycle override --reason "..."` lifts it and is logged.
+- A review step that never reports a verdict is **not** approved by default: it asks for a human look (Level 1 auto-approves by design).
 
-- `draft` - proceed; the step is approved.
-- `ask_clarification` - the step waits; the orchestrator asks the user `missing_info`, then re-runs the step (re-running marks it answered).
-- `decline` - the whole run halts with the reason.
+## Commands
 
-The engine applies policy on top of what the agent reports:
+| | |
+|---|---|
+| `/sdlc <task>` | the whole flow; say "hotfix" for urgent fixes (design/eval skipped, testing + verify mandatory) |
+| `/orchestrate <task>` | routing only |
+| `/pipeline-status` | where the run stands |
+| `/retro` | patterns from history and PR reviews -> proposed lessons / agent changes |
+| `/agent-architect` | design or audit the agent team from run data |
+| `/sdlc-setup` | one-time repo setup (`.claude/settings.json`, `.sdlc/verify.json`, `.sdlc/lessons.md`) |
+| bins on `PATH` | `orchestrate`, `sdlc-lifecycle`, `sdlc-verify`, `sdlc-history`, `sdlc-lessons`, `sdlc-setup` |
 
-- Level 1: `ask_clarification` and `decline` are coerced to `draft`.
-- Levels 2-3: a `draft` with `confidence < minConfidence` (0.5) is downgraded to `ask_clarification`.
-- Level 2 with `H > 40`: the first step is forced to ask once.
-- Level 3 `D > ceiling`: the run starts halted (decline gate).
-- Eval steps (`spec-eval`, `tech-design-eval`): `verdict: revise` sends `tech-design` back for rework and
-  re-evaluates it; Level 3 requires `minEvalCycles` (2) independent approvals; after `maxEvalCycles` (4) of
-  revisions the run is declined (loop exhausted).
-- Sequential gating: a step cannot start until all earlier stages are approved or skipped.
+### Verification: `.sdlc/verify.json`
 
-Hooks (`hooks/hooks.json`):
+```json
+{ "commands": [
+  { "name": "unit", "cmd": "dotnet test --nologo", "required": true, "timeoutSec": 900 },
+  { "name": "ATF",  "manual": true, "note": "Run the NeedIt ATF suite on the dev instance" } ] }
+```
+`manual` checks cannot run in a container and are reported as **unverified here** in the PR. With no config the engine
+autodetects `npm test` / `dotnet test`; with nothing at all it says "NOT CONFIGURED" - never a pass.
 
-| Hook | Script | Job |
+### Lessons: `.sdlc/lessons.md`
+
+At most 20 one-line rules / 2 KB. `sdlc-lessons add "<rule>" --why "<evidence>"` edits the file in the working tree, so the change
+rides in the PR and merging is the approval. The file is injected into each session at start and appended to every pipeline agent's prompt.
+
+### History: `.sdlc/history.jsonl`
+
+Every finished (completed / halted / abandoned) run is logged with per-step attempts, revisions and clarifications. `sdlc-history summary`
+turns it into rates and signals (rubber-stamp review steps, frequent blockers); steps need 5 runs before they are judged. It lives in the
+repo so it survives ephemeral web containers.
+
+## Hooks (`hooks/hooks.json`)
+
+| Event | Script | Job |
 |---|---|---|
-| `SessionStart` | `session-start.js` | exports `CLAUDE_SESSION_ID`, `OE_PLUGIN_DATA`, `OE_OPTION_*` to the Bash tool |
-| `PreToolUse` (Agent) | `enforce-gate.js` | deny halted/skipped/out-of-order steps; fill in the tier's model |
-| `SubagentStop` | `record-step.js` | parse and apply the decision block (blocks once if it is missing) |
-| `PostToolUse` (Agent) | `post-agent.js` | tell the orchestrator the next action |
+| `SessionStart` | `session-start.js` | exports session id / data dir / config to the Bash tool; injects lessons |
+| `PreToolUse` Agent | `enforce-gate.js` | gate + model tier + lessons appended to the agent's prompt |
+| `SubagentStop` | `record-step.js` | apply the decision block (blocks once if missing); resolves generic agents |
+| `PostToolUse` Agent | `post-agent.js` | tells the conductor the next action, per step |
+| `Stop` | `stop-gate.js` | verification before done; never blocks questions, halts, completion, the delivery checkpoint, or twice in a turn |
 
-State is per session under `${CLAUDE_PLUGIN_DATA}/sessions/<session-id>/{decision,run}.json`.
+State is per session under the plugin data dir, written under a cross-process lock so parallel subagents cannot overwrite each other.
+Decisions expire `decisionTtlHours` (6) after the last activity.
 
-## 3. Run history and the agent-architect skill
+## Config
 
-Every finished run (completed, halted, or abandoned when a new `/orchestrate` replaces an unfinished one) is
-appended to `${CLAUDE_PLUGIN_DATA}/history.jsonl` with per-step attempts, revisions and clarifications
-(task text truncated to 200 chars, stored locally only). `scripts/history.js summary|list|path` turns it
-into per-step approval / revision / clarification / decline rates plus signals: a review step that
-approves first time in every run is a *rubber-stamp candidate*; a step that is declined, asks, or
-requests revisions often is a *blocker*. Steps need 5 runs before they are judged.
+`tier1Model`/`tier2Model`/`tier3Model`, `declineDHardCeiling` (60), `decisionTtlHours` (6), `sdlcAgentPattern`, `churnWeight` (2),
+`specDistanceWeight` (50), `minEvalCycles` (2), `maxEvalCycles` (4), `minConfidence` (0.5), `requireDecisionBlock` (true), `injectLessons` (true).
 
-`/agent-architect` uses that evidence to **design** a new agent team or **audit** the current one
-(keep / make conditional / merge / remove, with the numbers cited). It grounds itself in the agent
-files that actually exist, asks questions before designing, prefers deterministic code over agents,
-keeps the team small, and does not edit anything until you approve the verdicts. It is adapted from a
-popular generic "AI agent architect" prompt, minus the parts that don't survive contact with a real
-build (invented tools, nine-section dumps, no questions asked).
+## Tests
 
-## 4. Use
-
-```
-/orchestrate Add a u_priority_override field to the NeedIt scripted REST API and validate it server-side
-/pipeline-status
-/agent-architect Audit the SDLC pipeline agents: is each one necessary?
-```
-
-CLI (the plugin's `bin/` is on `PATH`): `orchestrate --json "<task>"`,
-`node scripts/lifecycle.js status|clarified|record <step> ...|reset`.
-
-Pair it with the `sdlc-agents` plugin, or point `sdlcAgentPattern` at your own agents. Agents whose
-names contain `spec`, `design`, `design`+`eval`, `impl`, `doc`, `test` are mapped to the matching step.
-
-## 5. Config (plugin user config)
-
-`tier1Model`/`tier2Model`/`tier3Model`, `declineDHardCeiling` (60), `decisionTtlHours` (6),
-`sdlcAgentPattern`, `churnWeight` (2), `specDistanceWeight` (50), `minEvalCycles` (2),
-`maxEvalCycles` (4), `minConfidence` (0.5), `requireDecisionBlock` (true).
-
-## 6. Tests
-
-`npm test` in this directory (Node >= 20, no dependencies): 47 tests covering the matrix, the cosine
-check, the state machine, run history, and the hooks/CLI end to end against temp git repos.
+`npm test` here (Node >= 20, no dependencies): 70 tests - matrix, cosine check, state machine, concurrency, hooks, verification, stop gate,
+delivery, lessons, setup. Also exercised live in headless Claude Code runs (gate deny/allow, forced decision block, a full six-step pipeline with a real
+test command, Stop-gate blocking).
 
 ## Known limits
 
-- `D`'s inbound count is a basename text search, not a symbol-level graph across .NET/Kafka/SN.
-- Cosine similarity is lexical; an embedding model would catch paraphrases.
-- One active run per session; `/orchestrate` starts a new one.
-- A decision is valid for `decisionTtlHours`; afterwards the gate only reminds you to re-run `/orchestrate`.
+- Token caps are advisory (Claude Code has no per-subagent hard limit). `D` coupling is a basename text search, not a symbol graph; cosine similarity is lexical.
+- Generic agents (`general-purpose`) running two pipeline steps *in parallel* cannot be told apart; use named agents or `sdlc-lifecycle record`.
+- ServiceNow ATF and other environment-bound checks cannot run in a container; they are listed as unverified, not skipped silently.
+- `/sdlc-setup` writes the documented `.claude/settings.json` shape, which was not verified in a trust-gated session; the manual `/plugin` commands are the fallback.
+- Nested `claude -p` runs inherit the parent's `CLAUDE_ENV_FILE`; avoid nesting sessions for real work.

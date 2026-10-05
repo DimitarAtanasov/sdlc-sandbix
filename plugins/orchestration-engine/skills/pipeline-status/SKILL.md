@@ -6,7 +6,7 @@ description: Show the current AI SDLC pipeline run - complexity level, each step
 Run:
 
 ```
-OE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle.js" status
+sdlc-lifecycle status
 ```
 
 Report the level, which steps are approved, what is blocking the pipeline

@@ -63,7 +63,7 @@ test('sessions are isolated: another session has no decision and only gets a rem
   orchestrate(ctx, 'Fix a typo in the README', 'sess-1');
   const other = gate(ctx, call('implementation-agent'), 'sess-2').hookSpecificOutput;
   assert.equal(other.permissionDecision, undefined);
-  assert.match(other.additionalContext, /Run \/orchestrate/);
+  assert.match(other.additionalContext, /Run \/sdlc/);
 });
 
 test('decision made without a session id is found via the default slot', () => {
@@ -76,10 +76,13 @@ test('decision made without a session id is found via the default slot', () => {
 test('stale decisions are ignored', () => {
   const ctx = setup();
   orchestrate(ctx, 'Fix a typo in the README');
-  const file = path.join(ctx.data, 'sessions', 'sess-1', 'decision.json');
-  const d = JSON.parse(fs.readFileSync(file, 'utf8'));
-  d.computedAt = new Date(Date.now() - 7 * 3_600_000).toISOString();
-  fs.writeFileSync(file, JSON.stringify(d));
+  const old = new Date(Date.now() - 7 * 3_600_000).toISOString();
+  for (const [name, key] of [['decision.json', 'computedAt'], ['run.json', 'updatedAt']]) {
+    const file = path.join(ctx.data, 'sessions', 'sess-1', name);
+    const d = JSON.parse(fs.readFileSync(file, 'utf8'));
+    d[key] = old;
+    fs.writeFileSync(file, JSON.stringify(d));
+  }
   const out = gate(ctx, call('implementation-agent')).hookSpecificOutput;
   assert.equal(out.permissionDecision, undefined);
   assert.match(out.additionalContext, /no fresh complexity decision/);
@@ -145,7 +148,7 @@ test('lifecycle CLI: status, record, clarified, reset', () => {
 test('lifecycle CLI without a decision fails clearly', () => {
   const out = run('lifecycle.js', { args: ['status'], env: { CLAUDE_PLUGIN_DATA: tmpDir(), CLAUDE_SESSION_ID: 'none' } });
   assert.equal(out.status, 1);
-  assert.match(out.stderr, /Run \/orchestrate/);
+  assert.match(out.stderr, /Run \/sdlc/);
 });
 
 test('SessionStart mirrors session id, data dir and options into the Bash env file', () => {

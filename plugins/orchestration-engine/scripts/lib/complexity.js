@@ -19,7 +19,8 @@ function clamp(n, min, max) {
 function resolveTargets(repoRoot, taskDescription, explicitFiles) {
   const diffed = git.diffNumstat(repoRoot);
   const untracked = git.untrackedFiles(repoRoot);
-  const changed = [...diffed, ...untracked];
+  // .sdlc/ holds the framework's own state (history, lessons, verify config), not the task's change.
+  const changed = [...diffed, ...untracked].filter((c) => !c.file.startsWith('.sdlc/'));
 
   if (changed.length) {
     return {
