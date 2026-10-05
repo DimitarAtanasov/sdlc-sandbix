@@ -1,0 +1,23 @@
+{
+  "name": "sdlc-sandbix",
+  "owner": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "metadata": {
+    "description": "Sandbox marketplace for the AI SDLC framework: orchestration engine, plus the spec/eval, tech-design, implementation, documentation, and testing agents.",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "orchestration-engine",
+      "source": "./orchestration-engine",
+      "description": "The AI SDLC conductor: /sdlc runs complexity routing, the gated pipeline, deterministic verification, draft-PR delivery and a retro; hooks enforce sequencing and verification-before-done; run history and a capped, human-approved lessons file live in the repo."
+    },
+    {
+      "name": "sdlc-agents",
+      "source": "./sdlc-agents",
+      "description": "The six AI SDLC pipeline agents (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work, reporting draft / ask_clarification / decline decisions and approve / revise verdicts."
+    }
+  ]
+}

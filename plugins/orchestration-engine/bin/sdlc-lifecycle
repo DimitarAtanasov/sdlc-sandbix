@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Thin wrapper so `sdlc-lifecycle` works as a bare command from the Bash tool while this plugin is enabled.
+set -euo pipefail
+exec node "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lifecycle.js" "$@"

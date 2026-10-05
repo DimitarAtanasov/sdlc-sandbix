@@ -1,0 +1,97 @@
+{
+  "name": "orchestration-engine",
+  "displayName": "AI SDLC Orchestration Engine",
+  "version": "0.4.0",
+  "description": "The AI SDLC conductor engine: complexity scoring and routing, a gated lifecycle state machine (draft / ask-clarification / decline), deterministic verification, verification-before-done, delivery, run history in the repo, and a capped human-approved lessons file.",
+  "author": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "keywords": [
+    "sdlc",
+    "orchestration",
+    "complexity",
+    "routing",
+    "agents"
+  ],
+  "userConfig": {
+    "tier1Model": {
+      "type": "string",
+      "title": "Level 3 (Macro Arch) model",
+      "description": "Claude model used for Tier 1 / deep-reasoning tasks (M > 70).",
+      "default": "opus"
+    },
+    "tier2Model": {
+      "type": "string",
+      "title": "Level 2 (Standard) model",
+      "description": "Claude model used for Tier 2 / balanced tasks (15 <= M <= 70).",
+      "default": "sonnet"
+    },
+    "tier3Model": {
+      "type": "string",
+      "title": "Level 1 (Micro-Task) model",
+      "description": "Claude model used for Tier 3 / fast-cheap tasks (M < 15).",
+      "default": "haiku"
+    },
+    "declineDHardCeiling": {
+      "type": "number",
+      "title": "Decline gate D ceiling",
+      "description": "Level 3 Dependency & Coupling Depth (D) value above which the engine aborts the task with a Decline (lack of info) instead of entering the isolation loop.",
+      "default": 60
+    },
+    "decisionTtlHours": {
+      "type": "number",
+      "title": "Decision freshness window (hours)",
+      "description": "How long a computed orchestration decision stays valid for the Agent-call enforcement gate before it is considered stale and ignored.",
+      "default": 6
+    },
+    "sdlcAgentPattern": {
+      "type": "string",
+      "title": "SDLC agent name pattern",
+      "description": "Regex (case-insensitive) matched against subagent_type/description to decide which Agent calls the enforcement gate should govern. Leave default unless your spec/eval/design/implementation/doc/testing agents use different naming.",
+      "default": "spec|eval|design|implement|document|doc|test"
+    },
+    "churnWeight": {
+      "type": "number",
+      "title": "Git churn weight (H)",
+      "description": "Multiplier on 30-day git churn in H = churnWeight*churn + specDistanceWeight*cosineDistance. Spec default: 2.",
+      "default": 2
+    },
+    "specDistanceWeight": {
+      "type": "number",
+      "title": "Spec distance weight (H)",
+      "description": "Multiplier on cosine distance to specs in H. Spec default: 50. Lower it if short tasks over-trigger Ask Clarification.",
+      "default": 50
+    },
+    "minEvalCycles": {
+      "type": "number",
+      "title": "Level 3 min eval cycles",
+      "description": "Independent evaluation cycles the spec-eval and tech-design-eval steps must complete at Level 3 (isolation loop).",
+      "default": 2
+    },
+    "maxEvalCycles": {
+      "type": "number",
+      "title": "Eval cycle limit",
+      "description": "If an eval step still requests revisions after this many cycles the run is declined (isolation loop exhausted).",
+      "default": 4
+    },
+    "minConfidence": {
+      "type": "number",
+      "title": "Minimum agent confidence",
+      "description": "At Levels 2-3 a 'draft' decision reported with confidence below this value is downgraded to ask_clarification.",
+      "default": 0.5
+    },
+    "requireDecisionBlock": {
+      "type": "boolean",
+      "title": "Require decision block",
+      "description": "Block a pipeline agent from finishing once if its reply lacks the <decision>{...}</decision> block, so it can append one.",
+      "default": true
+    },
+    "injectLessons": {
+      "type": "boolean",
+      "title": "Inject project lessons",
+      "description": "Append the project's approved .sdlc/lessons.md to the prompt of every pipeline agent (and to the session at start).",
+      "default": true
+    }
+  }
+}

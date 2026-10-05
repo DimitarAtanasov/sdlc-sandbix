@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Thin wrapper so `orchestrate "<task description>"` works as a bare command
+# from the Bash tool while this plugin is enabled (bin/ is added to PATH).
+set -euo pipefail
+exec node "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/compute-complexity.js" "$@"

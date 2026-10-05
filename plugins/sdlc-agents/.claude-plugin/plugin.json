@@ -1,0 +1,17 @@
+{
+  "name": "sdlc-agents",
+  "displayName": "AI SDLC Pipeline Agents",
+  "version": "0.2.0",
+  "description": "Six pipeline agents for the AI SDLC framework (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work. Each ends with a draft / ask_clarification / decline decision block; review steps add an approve / revise verdict. Designed to run under the orchestration-engine plugin's /sdlc conductor.",
+  "author": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "keywords": [
+    "sdlc",
+    "agents",
+    "servicenow",
+    "kafka",
+    "dotnet"
+  ]
+}
