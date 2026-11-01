@@ -18,6 +18,11 @@
       "name": "sdlc-agents",
       "source": "./sdlc-agents",
       "description": "The six AI SDLC pipeline agents (spec-eval, tech-design, tech-design-eval, implementation, documentation, testing) for ServiceNow scripted REST, Kafka and .NET work, reporting draft / ask_clarification / decline decisions and approve / revise verdicts."
+    },
+    {
+      "name": "loop-graph",
+      "source": "./loop-graph",
+      "description": "Agent loops as reviewable contracts: a deterministic evaluator (loop-eval, no model) for loop graphs and recorded run traces, loop advisor / producer / runner agents, a typed version-controlled project memory, and an optional Graphify code map."
     }
   ]
 }

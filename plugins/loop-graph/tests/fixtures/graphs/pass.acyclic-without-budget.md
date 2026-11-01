@@ -1,0 +1,25 @@
+# Loop: minimal
+Structure: plain loop, because one worker and one check are enough.
+## Goal and input
+a
+## State
+a
+## Actions
+a
+## Observation
+a
+## Verification
+a
+## Stop and escalation
+a
+## Evidence
+a
+## Budget
+- none
+```mermaid
+flowchart LR
+    start --> work
+    work --> verify_check
+    verify_check -->|pass| done
+    verify_check -->|spent| escalated
+```
