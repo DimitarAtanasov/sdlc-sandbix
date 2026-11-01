@@ -1,0 +1,3 @@
+{"step":1,"node":"advise","to":"dispatch","label":"","actor":"a","role":"advisor","evidence":[]}
+{"step":2,"node":"dispatch","to":"escalated","label":"needs owner decision","actor":"l","role":"lead","evidence":[{"kind":"decision","ref":"Is a copyleft license acceptable?"}]}
+{"step":3,"node":"escalated","to":null,"label":"","actor":"l","role":"lead","evidence":[]}

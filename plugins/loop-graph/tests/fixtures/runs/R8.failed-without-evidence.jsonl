@@ -1,0 +1,4 @@
+{"step":1,"node":"advise","to":"dispatch","label":"","actor":"a","role":"advisor","evidence":[]}
+{"step":2,"node":"dispatch","to":"verify","label":"agents reported","actor":"r","role":"runner","evidence":[]}
+{"step":3,"node":"verify","to":"failed","label":"unsafe or data loss","actor":"l","role":"verifier","evidence":[]}
+{"step":4,"node":"failed","to":null,"label":"","actor":"l","role":"lead","evidence":[]}

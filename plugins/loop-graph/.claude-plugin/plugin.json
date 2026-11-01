@@ -1,0 +1,18 @@
+{
+  "name": "loop-graph",
+  "displayName": "Loop Graph and Second Brain",
+  "version": "0.1.0",
+  "description": "Agent loops as reviewable contracts judged by a deterministic evaluator (loop-eval: graph rules G0, S1-S4; run-trace rules R0-R8; no model), three loop agents (advisor, producer, runner), a typed version-controlled project memory, and an optional Graphify code map (brain-index).",
+  "author": {
+    "name": "Dimitar Atanasov",
+    "email": "miteto1990@gmail.com"
+  },
+  "keywords": [
+    "loops",
+    "workflow-graph",
+    "evaluator",
+    "agents",
+    "memory",
+    "verification"
+  ]
+}

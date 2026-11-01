@@ -1,0 +1,9 @@
+{"step":1,"node":"advise","to":"dispatch","label":"","actor":"loop-advisor","role":"advisor","evidence":[{"kind":"report","ref":"advisor backlog: 3 tasks, disjoint files"}],"extra":1}
+{"step":2,"node":"dispatch","to":"verify","label":"agents reported","actor":"loop-runner","role":"runner","evidence":[{"kind":"file","ref":"src/example.js"}]}
+{"step":3,"node":"verify","to":"rework","label":"fail","actor":"lead","role":"verifier","evidence":[{"kind":"command","ref":"npm test","exit_code":1}]}
+{"step":4,"node":"rework","to":"dispatch","label":"budget left","actor":"lead","role":"lead","evidence":[{"kind":"report","ref":"1 failing test sent back to the runner"}],"spent":{"rework_per_piece":1}}
+{"step":5,"node":"dispatch","to":"verify","label":"agents reported","actor":"loop-runner","role":"runner","evidence":[{"kind":"file","ref":"src/example.js"}],"spent":{"rework_per_piece":1}}
+{"step":6,"node":"verify","to":"commit","label":"pass","actor":"lead","role":"verifier","evidence":[{"kind":"command","ref":"npm test","exit_code":0},{"kind":"command","ref":"npm run lint","exit_code":0}],"spent":{"rework_per_piece":1}}
+{"step":7,"node":"commit","to":"more","label":"","actor":"lead","role":"lead","evidence":[{"kind":"commit","ref":"0000000 example commit"}],"spent":{"rework_per_piece":1}}
+{"step":8,"node":"more","to":"done","label":"backlog empty","actor":"lead","role":"lead","evidence":[{"kind":"report","ref":"handoff Next list is empty"}],"spent":{"rework_per_piece":1}}
+{"step":9,"node":"done","to":null,"label":"","actor":"lead","role":"lead","evidence":[{"kind":"file","ref":"docs/handoff.md"}],"spent":{"rework_per_piece":1}}

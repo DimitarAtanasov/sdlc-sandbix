@@ -1,0 +1,309 @@
+{
+  "about": "Expected rule ids per fixture, generated from the Python reference evaluator (heroes-mobile tools/skills/loop_eval.py). Paths are relative to the plugin root unless they start with graphs/ or runs/ (relative to tests/fixtures).",
+  "cases": [
+    {
+      "fixture": "graphs/pass.minimal.md",
+      "rules": []
+    },
+    {
+      "fixture": "graphs/pass.acyclic-without-budget.md",
+      "rules": []
+    },
+    {
+      "fixture": "graphs/S1.unlabeled-branch.md",
+      "rules": [
+        "S1"
+      ]
+    },
+    {
+      "fixture": "graphs/S2.zero-budget.md",
+      "rules": [
+        "S2"
+      ]
+    },
+    {
+      "fixture": "graphs/S2.unlabeled-retry.md",
+      "rules": [
+        "S1",
+        "S2"
+      ]
+    },
+    {
+      "fixture": "graphs/S3.no-verify-gate.md",
+      "rules": [
+        "S3"
+      ]
+    },
+    {
+      "fixture": "graphs/S3.done-bypasses-verify.md",
+      "rules": [
+        "S3"
+      ]
+    },
+    {
+      "fixture": "graphs/S4.no-non-success-exit.md",
+      "rules": [
+        "S4"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.missing-contract-section.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.missing-budget-section.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.missing-mermaid.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.empty-mermaid.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.no-done-terminal.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.terminal-with-exit.md",
+      "rules": [
+        "G0",
+        "S2"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.dead-end.md",
+      "rules": [
+        "G0",
+        "S1"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.unreachable.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.cannot-reach-terminal.md",
+      "rules": [
+        "G0",
+        "S1",
+        "S2"
+      ]
+    },
+    {
+      "fixture": "graphs/G0.cycle-without-budget.md",
+      "rules": [
+        "G0"
+      ]
+    },
+    {
+      "fixture": "runs/R0.invalid-json.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R0"
+      ]
+    },
+    {
+      "fixture": "runs/R1.empty.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1"
+      ]
+    },
+    {
+      "fixture": "runs/R1.no-terminal.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1"
+      ]
+    },
+    {
+      "fixture": "runs/R1.node-breaks-chain.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1",
+        "R2"
+      ]
+    },
+    {
+      "fixture": "runs/R1.step-number-skips.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1"
+      ]
+    },
+    {
+      "fixture": "runs/R1.stops-at-non-terminal.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1"
+      ]
+    },
+    {
+      "fixture": "runs/R2.not-an-edge.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R1",
+        "R2"
+      ]
+    },
+    {
+      "fixture": "runs/R2.wrong-label.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R2"
+      ]
+    },
+    {
+      "fixture": "runs/R3.counter-goes-down.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R3"
+      ]
+    },
+    {
+      "fixture": "runs/R3.over-budget.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R3"
+      ]
+    },
+    {
+      "fixture": "runs/R3.retry-without-spending.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R3"
+      ]
+    },
+    {
+      "fixture": "runs/R3.unknown-counter.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R3"
+      ]
+    },
+    {
+      "fixture": "runs/R4.claim-only.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R4"
+      ]
+    },
+    {
+      "fixture": "runs/R4.maker-accepts.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R4"
+      ]
+    },
+    {
+      "fixture": "runs/R4.verifier-command-failed.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R4"
+      ]
+    },
+    {
+      "fixture": "runs/R5.command-without-exit-code.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R5"
+      ]
+    },
+    {
+      "fixture": "runs/R5.evidence-not-a-list.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R5"
+      ]
+    },
+    {
+      "fixture": "runs/R5.float-exit-code.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R4",
+        "R5"
+      ]
+    },
+    {
+      "fixture": "runs/R5.unknown-evidence-kind.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R5"
+      ]
+    },
+    {
+      "fixture": "runs/R6.empty-actor.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R6"
+      ]
+    },
+    {
+      "fixture": "runs/R6.unknown-key.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R6"
+      ]
+    },
+    {
+      "fixture": "runs/R6.unknown-role.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R6"
+      ]
+    },
+    {
+      "fixture": "runs/R7.escalated-without-decision.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R7"
+      ]
+    },
+    {
+      "fixture": "runs/R8.failed-without-evidence.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": [
+        "R8"
+      ]
+    },
+    {
+      "fixture": "runs/pass.crlf-and-blank-lines.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": []
+    },
+    {
+      "fixture": "runs/pass.escalated-with-decision.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": []
+    },
+    {
+      "fixture": "runs/pass.failed-with-evidence.jsonl",
+      "loop": "examples/agent-round.md",
+      "rules": []
+    },
+    {
+      "fixture": "examples/agent-round.example.jsonl",
+      "loop": "tests/fixtures/graphs/S1.unlabeled-branch.md",
+      "rules": [
+        "G0",
+        "R0"
+      ],
+      "note": "R0: a failing graph blocks any run"
+    }
+  ]
+}

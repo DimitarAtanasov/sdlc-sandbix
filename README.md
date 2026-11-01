@@ -9,6 +9,9 @@ Sandbox marketplace for the AI SDLC plugin framework.
   capped human-approved lessons file and run history in `.sdlc/` make it learn.
 - **[sdlc-agents](plugins/sdlc-agents/)** - the six pipeline agents (spec-eval, tech-design, tech-design-eval, implementation,
   documentation, testing) for ServiceNow scripted REST, Kafka and .NET work.
+- **[loop-graph](plugins/loop-graph/)** - agent loops as reviewable contracts. `loop-eval` (deterministic, no model) checks a
+  loop graph and later the recorded run; three loop agents (advisor, producer, runner); a typed project memory in
+  `docs/memory/` and an optional Graphify code map (`brain-index`). Optional; independent of the other two.
 
 ## Install (works entirely from the Claude Code mobile/web app - no local CLI needed)
 
@@ -16,6 +19,7 @@ Sandbox marketplace for the AI SDLC plugin framework.
 /plugin marketplace add dimitaratanasov/sdlc-sandbix
 /plugin install orchestration-engine@sdlc-sandbix
 /plugin install sdlc-agents@sdlc-sandbix
+/plugin install loop-graph@sdlc-sandbix        # optional
 ```
 
 Then, in the repo you want to work on, run `/sdlc-setup` once (commit what it writes), and from then on just
